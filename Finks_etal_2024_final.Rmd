@@ -68,7 +68,7 @@ library(xlsx)
 library(patchwork)
 ```
 
-```{r Figure 1C and 1D. Curtobacterium plasmids vary genomic similarity, size distribution, and have distinct %GC content compared to chromosome), echo=FALSE}
+```{r Figure 1C and 1D. Curtobacterium plasmids vary by genomic similarity, size distribution, and have distinct %GC content compared to chromosome), echo=FALSE}
 
 #Figure 1B - plotting the heatmap of plasmid mash similarities
 
@@ -181,7 +181,7 @@ p_gc
 
 ```{r Figure 2A. Curtobacterium Plasmid COG functional Categories by environment, echo=FALSE}
 
-#By Enviroment
+#By enviroment
 plas.cog.cat <-
   read_excel(
     "~/path/to/plas_cog_cat.xlsx"
@@ -383,7 +383,7 @@ colSums(cog_by_rep_traits.m)
 rowSums(cog_by_rep_traits.m)
 nrow(cog_by_rep_traits.m)
 
-#Test for Independence
+#Test for independence
 G.test.cog.rep <- GTest(cog_by_rep_traits.m, correct = "none")
 G.test.cog.rep
 
