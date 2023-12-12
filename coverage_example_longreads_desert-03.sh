@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=read_coverage	
+#SBATCH --job-name=read_coverage_	
 #SBATCH -A 	
 #SBATCH -p standard		 	
 #SBATCH --nodes=1        	
