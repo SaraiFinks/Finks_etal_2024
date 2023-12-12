@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=read_coverage_	
+#SBATCH --job-name=read_coverage_longreads
 #SBATCH -A 	
 #SBATCH -p standard		 	
 #SBATCH --nodes=1        	
@@ -16,7 +16,7 @@ module load samtools/1.10
 module load anaconda/2020.07
 source activate qualimap
 
-INDEX=/path/to/fasta/file/shortreads
+INDEX=/path/to/fasta/assembly/file
 READ=/path/to/fasta/file/longreads
 OUTDIR=/path/to/output/coverage/files
 
