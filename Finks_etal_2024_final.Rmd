@@ -1,0 +1,490 @@
+---
+title: "The contribution of plasmids to trait diversity in a soil bacterium"
+author: "Sarai S. Finks"
+date: "4/28/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r Working Directory, include=FALSE, echo=FALSE}
+
+getwd()
+setwd("~/path/to/files")
+
+```
+
+```{r Load packages, include=FALSE, echo=FALSE}
+
+library(afex)
+library(Biostrings)
+library(biomformat)
+library(broom)
+library(BSDA)
+library(car)
+library(data.table)
+library(datarium)
+library(DescTools)
+library(dplyr)
+library(devtools)
+library(EcolUtils)
+library(ExPosition)
+library(emmeans)
+library(forcats)
+library(gapminder)
+library(ggplot2)
+library(ggpmisc)
+library(ggrepel)
+library(ggridges)
+library(gplots)
+library(ggbreak) 
+library(ggpubr)
+library(Hmisc)
+library(lmerTest)
+library(lubridate)
+library(lsmeans)
+library(mblm)
+library(multcomp)
+library(multcompView)
+library(phyloseq)
+library(picante)
+library(plyr)
+library(psych)
+library(purrr)
+library(RColorBrewer)
+library(readxl)
+library(reshape2)
+library(rcompanion)
+library(Rmisc)
+library(rstatix)
+library(scales)
+library(sm)
+library(stringr)
+library(seqinr)
+library(tidyr)
+library(tidyverse)
+library(vegan)
+library(xlsx)
+library(patchwork)
+```
+
+```{r Figure 1C and 1D. Curtobacterium plasmids vary genomic similarity, size distribution, and have distinct %GC content compared to chromosome), echo=FALSE}
+
+#Figure 1B - plotting the heatmap of plasmid mash similarities
+
+plasmid_mash <- read_excel("~/path/to/Finks_etal_2024.xlsx",
+                           sheet = "Table_S3")
+
+plasmid_mash <-
+  as.data.frame(plasmid_mash, col.names	=	TRUE,	row.names	=	TRUE)
+plasmid_mash [1:5 , 1:3]
+plasmid_mash.1 <- plasmid_mash[-1]
+row.names(plasmid_mash.1) <- plasmid_mash$'Plasmid ID'
+plasmid_mash.1[1:5 , 1:4]
+
+plasmid.mash.1 <- as.matrix(plasmid_mash.1,)
+lapply(plasmid.mash.1, class)
+
+p.mash <- heatmap.2(
+  plasmid.mash.1,
+  col = c(
+    "#015C92",
+    "#2D82B5",
+    "#7FACD6",
+    "#88CDF6",
+    "#E7E7E7",
+    "#FFDCA2",
+    "#FFBD71",
+    "#FD8F52",
+    "#FF6200"
+  ),
+  trace = "none",
+  tracecol = "#edca80",
+  margins = c(6, 40),
+  key.xlab = "Percent ID",
+  key.title = NA,
+  sepwidth = c(0.000000025, 0.000000025),
+  sepcolor = "#FAF9F6",
+  colsep = 1:ncol(plasmid.mash.1),
+  rowsep = 1:nrow(plasmid.mash.1),
+  cexRow = 0.05,
+  cexCol = 0.05,
+  lhei = c(2, 10),
+  #lmat = rbind(c(0, 3, 4), c(2, 1, 0)),
+  #lwid = c(2, 4, 2)
+)
+
+#Figure 1C - histogram of plasmid sizes
+his_sizes <- read_excel("replicon_sizes.xlsx")
+his_sizes <- his_sizes[-(48:73), ]
+his_sizes  <-
+  as.data.frame(his_sizes, col.names	=	TRUE,	row.names	=	TRUE)
+
+p <- ggplot(his_sizes, aes(x = plasmid_kb)) +
+  geom_histogram(
+    color = "black",
+    fill = "#838383",
+    binwidth = 10,
+    position = position_dodge(0.5)
+  ) +
+  scale_x_continuous(breaks = seq(0, 650, by = 25)) +
+  scale_y_continuous(breaks = seq(0, 30, by = 2), expand = c(0, 0)) +
+  theme_classic() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    panel.border = element_blank()
+  )
+p + scale_x_break(c(175, 540))
+
+
+#Figure 1D - Percent GC content of Curtobacterium plasmid and chromosome sequences
+gc_content <- read_excel("~/path/to/Finks_etal_2024.xlsx",
+                         sheet = "Sheet1")
+gc_content <-
+  as.data.frame(gc_content, col.names	=	TRUE,	row.names	=	TRUE)
+lapply(gc_content, class)
+
+set.seed(3)
+
+p_gc <-
+  ggplot(gc_content, aes(
+    x = fct_relevel(RepliconType, "Plasmid", "Chromosome"),
+    y = GC,
+    group = id
+  )) +
+  geom_line() +
+  geom_point(
+    size = 4,
+    stroke = 1.5,
+    aes(color = RepliconType),
+    position = position_jitter(h = 0.001, w = 0.001)
+  ) +
+  scale_x_discrete("") +
+  scale_y_continuous(breaks = seq(20, 70, by = 5)) +
+  scale_color_manual(values = c("#b4943e", "#777acd")) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    panel.grid.major.y = element_line(),
+    panel.grid.minor.y = element_line(),
+    panel.grid.major.x = element_line(),
+    axis.line.y = element_line(linewidth = .5),
+    axis.line.x = element_line(linewidth = .5)
+  )
+
+p_gc 
+
+
+```
+
+```{r Figure 2A. Curtobacterium Plasmid COG functional Categories by environment, echo=FALSE}
+
+#By Enviroment
+plas.cog.cat <-
+  read_excel(
+    "~/path/to/plas_cog_cat.xlsx"
+  )
+
+plas.cog.cat  <-
+  as.data.frame(plas.cog.cat,
+                col.names	=	TRUE,
+                row.names	=	TRUE)
+
+cog.by.env <-
+  plas.cog.cat  %>% group_by(habitat) %>% group_by(accession) %>% dplyr::count(habitat) %>% pivot_wider(names_from = habitat, values_from = n)
+
+cog.by.env <-
+  as.data.frame(cog.by.env, col.names	=	TRUE,	row.names	=	TRUE)
+
+cog.by.env[is.na(cog.by.env)] <- 0
+
+row.names(cog.by.env) = cog.by.env[, 1]
+cog.by.env.traits <-
+  as.data.frame((cog.by.env[,-1]))
+rowSums(cog.by.env.traits)
+colSums(cog.by.env.traits)
+
+cog.by.env.traits.m <-
+  cog.by.env.traits[rowSums(cog.by.env.traits) >= 6,]
+nrow(cog.by.env.traits)
+rowSums(cog.by.env.traits)
+
+colSums(cog.by.env.traits.m)
+rowSums(cog.by.env.traits.m)
+nrow(cog.by.env.traits.m)
+
+#Test for Independence
+G.test.cog.env <- GTest(cog.by.env.traits.m, correct = "none")
+G.test.cog.env
+
+cog.env.stand <-
+  sweep(cog.by.env.traits.m, 2, colSums(cog.by.env.traits.m), `/`)
+colSums(cog.env.stand) #all of the columns sums should add to 1
+
+normalized.cog.env <-
+  rowNorms(cog.env.stand,
+           type = "z",
+           center = TRUE,
+           scale = TRUE)
+
+rowSums(normalized.cog.env)
+
+#Using the standardized matrix, first by env (columns) then by cogs(rows) make a Euclidean distance matrix
+dist.env.cog <- vegdist(t(normalized.cog.env), method = 'euclidean')
+clusters.env.cog <- hclust(dist.env.cog, 'ward.D')
+
+dist.env.cog.1 <- vegdist(normalized.cog.env, method = 'euclidean')
+clusters.env.cog.1 <- hclust(dist.env.cog.1 , 'ward.D')
+
+p.env <- heatmap.2(
+  normalized.cog.env,
+  Rowv = as.dendrogram(clusters.env.cog.1),
+  Colv = as.dendrogram(clusters.env.cog),
+  col = c(
+    "#015C92",
+    "#2D82B5",
+    "#7FACD6",
+    "#88CDF6",
+    "#E7E7E7",
+    "#FFDCA2",
+    "#FFBD71",
+    "#FD8F52",
+    "#FF6200"
+  ),
+  trace = "none",
+  tracecol = "#edca80",
+  margins = c(6, 40),
+  key.xlab = "Row Z-Score",
+  key.title = NA,
+  sepwidth = c(0.0000001, 0.000001),
+  sepcolor = "#FAF9F6",
+  colsep = 1:ncol(normalized.cog.env),
+  rowsep = 1:nrow(normalized.cog.env),
+  cexRow = 0.5,
+  cexCol = 0.5,
+  lhei = c(2, 10),
+  #lmat = rbind(c(0, 3, 4), c(2, 1, 0)),
+  #lwid = c(2, 4, 2)
+)
+
+#Ecotype
+
+cog.by.eco <-
+  plas.cog.cat  %>% group_by(ecotype) %>% group_by(accession) %>% dplyr::count(ecotype) %>% pivot_wider(names_from = ecotype, values_from = n)
+
+cog.by.eco <-
+  as.data.frame(cog.by.eco, col.names	=	TRUE,	row.names	=	TRUE)
+
+cog.by.eco[is.na(cog.by.eco)] <- 0
+
+row.names(cog.by.eco) = cog.by.eco[, 1]
+cog.by.eco.traits <-
+  as.data.frame((cog.by.eco[,-1]))
+rowSums(cog.by.eco.traits)
+colSums(cog.by.eco.traits)
+
+cog.by.eco.traits.m <-
+  cog.by.eco.traits[rowSums(cog.by.eco.traits) >= 6,]
+nrow(cog.by.eco.traits)
+rowSums(cog.by.eco.traits)
+
+colSums(cog.by.eco.traits.m)
+rowSums(cog.by.eco.traits.m)
+nrow(cog.by.eco.traits.m)
+
+#Test for Independence
+G.test.cog.eco <- GTest(cog.by.eco.traits.m, correct = "none")
+G.test.cog.eco
+
+cog.eco.stand <-
+  sweep(cog.by.eco.traits.m, 2, colSums(cog.by.eco.traits.m), `/`)
+
+colSums(cog.eco.stand) #all of the columns sums should add to 1
+
+normalized.cog.eco <-
+  rowNorms(cog.eco.stand,
+           type = "z",
+           center = TRUE,
+           scale = TRUE)
+
+rowSums(normalized.cog.eco)
+
+#using the standardized matrix, first by env (columns) then by cogs(rows) make a Euclidean distance matrix
+dist.eco.cog <- vegdist(t(normalized.cog.eco), method = 'euclidean')
+clusters.eco.cog <- hclust(dist.eco.cog, 'ward.D')
+
+dist.eco.cog.1 <- vegdist(normalized.cog.eco, method = 'euclidean')
+clusters.eco.cog.1 <- hclust(dist.eco.cog.1, 'ward.D')
+
+p.eco <- heatmap.2(
+  normalized.cog.eco,
+  Rowv = as.dendrogram(clusters.eco.cog.1),
+  Colv = as.dendrogram(clusters.eco.cog),
+  col = c(
+    "#015C92",
+    "#2D82B5",
+    "#7FACD6",
+    "#88CDF6",
+    "#E7E7E7",
+    "#FFDCA2",
+    "#FFBD71",
+    "#FD8F52",
+    "#FF6200"
+  ),
+  trace = "none",
+  tracecol = "#edca80",
+  margins = c(6, 40),
+  key.xlab = "Row Z-Score",
+  key.title = NA,
+  sepwidth = c(0.0000001, 0.000001),
+  sepcolor = "#FAF9F6",
+  colsep = 1:ncol(normalized.cog.eco),
+  rowsep = 1:nrow(normalized.cog.eco),
+  cexRow = 0.5,
+  cexCol = 0.5,
+  lhei = c(2, 10),
+  #lmat = rbind(c(0, 3, 4), c(2, 1, 0)),
+  #lwid = c(2, 4, 2)
+)
+
+```
+
+```{r Figure 2B. Overall COG category counts (Log10 scaled) for comparison across Curtobacterium replicon types, echo =FALSE}
+
+comb.cog.cat <- read_excel("combine_cog_cat.xlsx")
+
+comb.cog.cat  <-
+  as.data.frame(comb.cog.cat,
+                col.names	=	TRUE,
+                row.names	=	TRUE)
+
+cog_by_rep <-
+  comb.cog.cat  %>% group_by(location) %>% group_by(accession) %>% dplyr::count(location) %>% pivot_wider(names_from = location, values_from = n)
+
+cog_by_rep <-
+  as.data.frame(cog_by_rep, col.names	=	TRUE,	row.names	=	TRUE)
+
+cog_by_rep[is.na(cog_by_rep)] <- 0
+
+row.names(cog_by_rep) = cog_by_rep[, 1]
+cog_by_rep_traits <-
+  as.data.frame((cog_by_rep[,-1]))
+rowSums(cog_by_rep_traits)
+colSums(cog_by_rep_traits)
+
+cog_by_rep_traits.m <-
+  cog_by_rep_traits[rowSums(cog_by_rep_traits) >= 6,]
+nrow(cog_by_rep_traits.m)
+rowSums(cog_by_rep_traits.m)
+
+colSums(cog_by_rep_traits.m)
+rowSums(cog_by_rep_traits.m)
+nrow(cog_by_rep_traits.m)
+
+#Test for Independence
+G.test.cog.rep <- GTest(cog_by_rep_traits.m, correct = "none")
+G.test.cog.rep
+
+cog.by.chrom.plas <- read_excel("cog_by_chrom_plas1.xlsx")
+cog.by.chrom.plas <- as.data.frame(cog.by.chrom.plas)
+
+cog.replicon.plot <-
+  ggplot(data = cog.by.chrom.plas, aes(
+    x = COG_category,
+    y = percentage,
+    fill = fct_relevel(replicon, "plasmid", "chromosome")
+  )) +
+  geom_bar(stat = "identity",
+           position = position_dodge(),
+           alpha = 0.75)  +
+  labs(x = "\n COG_category", y = "percentage\n") +
+  scale_y_continuous(breaks = seq(0, 20, by = 2), expand = c(0, 0)) +
+  scale_fill_manual(values = c("#777acd", "#b4943e")) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.title.x = element_text(
+      face = "bold",
+      colour = "red",
+      size = 12
+    ),
+    axis.title.y = element_text(
+      face = "bold",
+      colour = "red",
+      size = 12
+    ),
+    legend.title = element_text(face = "bold", size = 10)
+  ) +
+  theme_minimal() +
+  theme(
+    axis.line.x = element_line(
+      colour = 'black',
+      size = 0.5,
+      linetype = 'solid'
+    ),
+    axis.line.y = element_line(
+      colour = 'black',
+      size = 0.5,
+      linetype = 'solid'
+    ),
+    panel.grid.major.x = element_blank(),
+    panel.background = element_blank(),
+    panel.border = element_blank()
+  )
+
+plot(cog.replicon.plot)
+
+cog.replicon.plot2 <-
+  ggplot(cog.by.chrom.plas, aes(x = reorder(COG_category, desc(COG_category)))) +
+  geom_col(
+    data = subset(cog.by.chrom.plas, replicon == "plasmid"),
+    aes(
+      y = -percentage,
+      fill = 'plasmid',
+      alpha = 0.2
+    )
+  ) +
+  geom_col(
+    data = subset(cog.by.chrom.plas, replicon == "chromosome"),
+    aes(y = percentage, fill = 'chromosome', alpha = 0.2)
+  ) +
+  coord_flip() + scale_fill_manual(values = c("#b4943e", "#777acd")) +
+  scale_y_continuous(breaks = seq(-20, 20, by = 2),
+                     labels = (c(seq(20, 0, by = -2), seq(2, 20, by = 2)))) +
+  theme(
+    plot.title = element_text(hjust = 0.2),
+    axis.title.x = element_text(
+      face = "bold",
+      colour = "red",
+      size = 12
+    ),
+    axis.title.y = element_text(
+      face = "bold",
+      colour = "red",
+      size = 12
+    ),
+    legend.title = element_text(face = "bold", size = 10)
+  ) +
+  geom_hline(yintercept = 0) +
+  theme_minimal() +
+  theme(
+    axis.line.x = element_line(
+      colour = 'black',
+      size = 0.5,
+      linetype = 'solid'
+    ),
+    axis.line.y = element_line(
+      colour = 'black',
+      size = 0.5,
+      linetype = 'solid'
+    ),
+    panel.grid.major = element_blank(),
+    panel.grid.minor =  element_blank(),
+    panel.background = element_blank(),
+    panel.border = element_blank()
+  )
+
+cog.replicon.plot2
+
+```
