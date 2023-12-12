@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=fastqc_curtos	
+#SBATCH --job-name=fastqc	
 #SBATCH -A 		
 #SBATCH -p standard		 	
 #SBATCH --nodes=1        	
