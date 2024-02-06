@@ -116,19 +116,18 @@ p.mash <- heatmap.2(
 
 #Figure 1C - histogram of plasmid sizes
 his_sizes <- read_excel("replicon_sizes.xlsx")
-his_sizes <- his_sizes[-(48:73), ]
+
 his_sizes  <-
   as.data.frame(his_sizes, col.names	=	TRUE,	row.names	=	TRUE)
 
-p <- ggplot(his_sizes, aes(x = plasmid_kb)) +
-  geom_histogram(
-    color = "black",
-    fill = "#838383",
-    binwidth = 10,
-    position = position_dodge(0.5)
-  ) +
-  scale_x_continuous(breaks = seq(0, 650, by = 25)) +
-  scale_y_continuous(breaks = seq(0, 30, by = 2), expand = c(0, 0)) +
+lapply(his_sizes, class)
+
+p <-  ggplot(his_sizes, aes(x = x)) +
+  geom_histogram(binwidth = 20,
+                 color = "black",
+                 fill = "#838383") +
+  scale_x_continuous(breaks = seq(0, 600, by = 25)) +
+  scale_y_continuous(breaks = seq(0, 15, by = 1), expand = c(0, 0)) +
   theme_classic() +
   theme(
     panel.grid.major = element_blank(),
@@ -136,7 +135,7 @@ p <- ggplot(his_sizes, aes(x = plasmid_kb)) +
     panel.background = element_blank(),
     panel.border = element_blank()
   )
-p + scale_x_break(c(175, 540))
+p + scale_x_break(c(200, 540))
 
 #Figure 1D - Percent GC content of Curtobacterium plasmid and chromosome sequences
 gc_content <- read_excel("~/path/to/Finks_etal_2024.xlsx",
